@@ -25,13 +25,13 @@ importers:
         specifier: ^24.10.0
         version: 24.10.0
       autoprefixer:
-        specifier: ^10.4.20
+        specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.6)
       postcss:
-        specifier: ^8.4.45
+        specifier: ^8.5.6
         version: 8.5.6
       typescript:
-        specifier: ^5.6.3
+        specifier: ^5.9.3
         version: 5.9.3
       vite:
         specifier: ^7.2.1

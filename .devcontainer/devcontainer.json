@@ -5,12 +5,9 @@
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22",
       "nvmInstall": true
-    },
-    "ghcr.io/devcontainers/features/pnpm:2": {
-      "version": "latest"
     }
   },
-  "postCreateCommand": "pnpm install",
+  "postCreateCommand": "corepack enable pnpm && pnpm install",
   "postStartCommand": "pnpm dev -- --host 0.0.0.0 --port 5173 &",
   "customizations": {
     "vscode": {

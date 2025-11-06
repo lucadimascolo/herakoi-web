@@ -15,5 +15,18 @@
     // Format and lint everything by default, but skip legacy snapshots
     // that live under legacy_html/ so we can keep the historical artifacts untouched.
     "includes": ["**", "!legacy_html"]
+  },
+  "javascript": {
+    // Match the legacy demo's preference for double quotes to avoid churn.
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   }
 }

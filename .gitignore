@@ -4,6 +4,7 @@ node_modules/
 .pnpm-debug.log*
 dist/
 .vite/
+*.tsbuildinfo
 
 # Editor noise
 .DS_Store

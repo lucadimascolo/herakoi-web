@@ -55,3 +55,9 @@ We want to introduce a maintainable frontend toolchain (TypeScript, Vite, Biome,
 - Close with updated documentation and manual test notes before requesting approval.
 - Treat a green GitHub Pages deployment as part of the review checklist; it proves the build still works in CI and the published sandbox is fresh.
 - Require the plan in `docs/improvement-plan-pr1.md` to stay current throughout the workstream—new tasks land there first, and engineers wait for confirmation before acting on significant additions.
+- Reflect any new workflow expectations inside `AGENTS.md` so every agent sees the requirement to update this plan before acting.
+
+## Plan Completion Checklist
+- Flesh out the manual smoke checklist (steps, expected results, owners) so parity reviews stay repeatable.  
+- Add the timeline for multi-channel modularization and list dependencies (e.g., audio refactors, MediaPipe experiments).  
+- Capture the exact GitHub Pages rollout owner plus fallback reviewer, then link to the workflow once implemented.

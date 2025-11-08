@@ -1,4 +1,4 @@
-name: Quality and Deploy
+name: CI + Deploy
 
 on:
   push:
@@ -57,12 +57,40 @@ jobs:
         # Running without --changed ensures CI always covers the entire test matrix before merges land.
         run: pnpm test
 
-  pages_build:
-    needs: quality
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  changes:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     outputs:
-      should_deploy: ${{ steps.deploy_flag.outputs.should_deploy }}
+      should_deploy: ${{ steps.decision.outputs.should_deploy }}
+      cache_key: ${{ steps.dist-cache.outputs.cache-primary-key }}
+    steps:
+      - name: Prepare dist directory
+        run: mkdir -p dist
+
+      - name: Check build-input cache signature
+        id: dist-cache
+        uses: actions/cache@v4
+        with:
+          path: dist
+          key: |
+            ${{ runner.os }}-vite-dist-${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs') }}
+          lookup-only: true
+
+      - name: Decide whether to deploy
+        id: decision
+        run: |
+          if [ "${{ steps.dist-cache.outputs.cache-hit }}" = 'true' ]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  pages_build:
+    needs:
+      - quality
+      - changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -94,36 +122,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Restore cached dist
-        id: dist-cache
-        uses: actions/cache@v4
-        with:
-          path: dist
-          key: |
-            ${{ runner.os }}-vite-dist-${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'docs/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs', 'biome.jsonc', 'AGENTS.md') }}
-
       - name: Build site
-        if: steps.dist-cache.outputs.cache-hit != 'true'
         run: pnpm build
 
       - name: Upload artifact
-        if: steps.dist-cache.outputs.cache-hit != 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
-      - name: Record deploy decision
-        id: deploy_flag
-        run: |
-          if [ "${{ steps.dist-cache.outputs.cache-hit }}" = 'true' ]; then
-            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
-          fi
-
   pages_deploy:
     needs: pages_build
-    if: needs.pages_build.result == 'success' && needs.pages_build.outputs.should_deploy == 'true'
+    if: needs.pages_build.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -7,10 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "biome check . && pnpm run typecheck",
+    "lint": "pnpm run lint:biome && pnpm run typecheck",
+    "lint:biome": "biome check .",
+    "lint:biome:fix": "biome check --write --unsafe .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.node.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "postinstall": "lefthook install"
   },
   "imports": {
     "#src/*": "./src/*.ts"
@@ -19,6 +22,7 @@
     "@biomejs/biome": "^2.3.4",
     "@types/node": "^24.10.0",
     "autoprefixer": "^10.4.21",
+    "lefthook": "^2.0.2",
     "postcss": "^8.5.6",
     "typescript": "^5.9.3",
     "vite": "^7.2.1",

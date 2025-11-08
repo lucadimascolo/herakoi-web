@@ -1,0 +1,28 @@
+# We wire Lefthook into git so every commit reruns our pnpm lint story before history changes.
+# This lets teammates catch Biome or TypeScript regressions while context is fresh and fixes stay cheap.
+
+pre-commit:
+  # We intercept pre-commit so every snapshot benefits from the same quality gates as CI.
+  jobs:
+    - name: biome-fix
+      # We auto-apply Biome fixes first so formatting nits disappear before the rest of the hooks run.
+      # stage_fixed re-adds any touched files so the subsequent jobs lint the rewritten sources we now intend to commit.
+      run: pnpm run lint:biome:fix
+      stage_fixed: true
+    - name: code-health
+      # We bundle Biome + TypeScript here to surface lint and structural issues together; running them in parallel keeps feedback tight.
+      group:
+        parallel: true
+        jobs:
+          - name: biome
+            # We lint directly with pnpm so contributors do not need a global Biome install.
+            # This mirrors `pnpm lint:biome`, ensuring hook output matches local reproduction steps.
+            run: pnpm run lint:biome
+          - name: typescript
+            # We rely on the dedicated typecheck script so both tsconfig targets stay aligned with CI.
+            # Keeping it beside Biome ensures structural regressions surface even when lint passes.
+            run: pnpm run typecheck
+    - name: vitest
+      # We only kick off Vitest after code-health succeeds so test noise never hides lint/type failures.
+      # This ensures the heavier suite only runs when earlier gates are green.
+      run: pnpm test

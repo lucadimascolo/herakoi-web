@@ -22,3 +22,7 @@ pnpm lint         # biome + tsc
 pnpm typecheck    # explicit project + config checks
 pnpm test         # vitest (placeholder until specs land)
 ```
+
+Your first `pnpm install` now also runs `lefthook install` automatically so Git wires the shared pre-commit hook (which executes `pnpm lint`) before you start committing.
+Biome and TypeScript checks are exposed as separate scripts under the hood, letting Lefthook run them in parallel while `pnpm lint` still chains them for manual runs; Vitest now waits on those hooks so fast lint feedback lands before the heavier test suite spins up.
+Pre-commit now auto-runs Biome’s fix mode first; if it rewrites files, Git pauses the commit so we can review and restage. Run `pnpm run lint:biome:fix` directly whenever you want those rewrites without executing the full hook chain.

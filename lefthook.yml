@@ -26,3 +26,11 @@ pre-commit:
       # We only kick off Vitest after code-health succeeds so test noise never hides lint/type failures.
       # We lean on Vitest's built-in --changed flag so this job only exercises specs tied to our current diff while manual pnpm test runs still cover the full suite.
       run: pnpm test --changed
+
+commit-msg:
+  # We lint commit messages so our history stays compatible with changelog tooling and code review stays readable at a glance.
+  jobs:
+    - name: commitlint
+      # We ask commitlint to inspect the message file git passes in so contributors get fast feedback before history lands.
+      # The first argument from git is the path to the temporary commit message, which Lefthook forwards as $1 for us.
+      run: pnpm exec commitlint --edit "$1"

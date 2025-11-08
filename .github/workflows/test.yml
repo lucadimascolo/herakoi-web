@@ -1,0 +1,41 @@
+# We run the full Vitest suite in CI so every push and pull request gets coverage beyond the staged-only pre-commit hook.
+# This workflow mirrors local pnpm commands, which keeps debugging parity high for teammates.
+
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  vitest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        # We pin pnpm so CI stays in lockstep with local contributors and Lefthook’s expectations.
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+
+      - name: Setup Node.js
+        # We align with the repo’s Node 22 baseline and enable pnpm caching to keep reruns snappy for everyone.
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        # We install with --frozen-lockfile so the workflow fails fast if the lock file and manifest ever drift.
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Vitest (full suite)
+        # Running without --changed ensures CI always covers the entire test matrix before merges land.
+        run: pnpm test

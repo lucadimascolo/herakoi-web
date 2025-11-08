@@ -1,7 +1,4 @@
-# We run the full Vitest suite in CI so every push and pull request gets coverage beyond the staged-only pre-commit hook.
-# This workflow mirrors local pnpm commands, which keeps debugging parity high for teammates.
-
-name: Lint Typecheck Test
+name: Quality and Deploy
 
 on:
   push:
@@ -13,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  ci:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -59,3 +56,83 @@ jobs:
       - name: Run Vitest (full suite)
         # Running without --changed ensures CI always covers the entire test matrix before merges land.
         run: pnpm test
+
+  pages_build:
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.deploy_flag.outputs.should_deploy }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Derive pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore cached dist
+        id: dist-cache
+        uses: actions/cache@v4
+        with:
+          path: dist
+          key: |
+            ${{ runner.os }}-vite-dist-${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'docs/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs', 'biome.jsonc', 'AGENTS.md') }}
+
+      - name: Build site
+        if: steps.dist-cache.outputs.cache-hit != 'true'
+        run: pnpm build
+
+      - name: Upload artifact
+        if: steps.dist-cache.outputs.cache-hit != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Record deploy decision
+        id: deploy_flag
+        run: |
+          if [ "${{ steps.dist-cache.outputs.cache-hit }}" = 'true' ]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  pages_deploy:
+    needs: pages_build
+    if: needs.pages_build.result == 'success' && needs.pages_build.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

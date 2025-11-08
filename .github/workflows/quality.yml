@@ -1,7 +1,7 @@
 # We run the full Vitest suite in CI so every push and pull request gets coverage beyond the staged-only pre-commit hook.
 # This workflow mirrors local pnpm commands, which keeps debugging parity high for teammates.
 
-name: Test
+name: Lint Typecheck Test
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  vitest:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -24,6 +24,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10.20.0
+          run_install: false
 
       - name: Setup Node.js
         # We align with the repo’s Node 22 baseline and enable pnpm caching to keep reruns snappy for everyone.
@@ -32,9 +33,28 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Derive pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         # We install with --frozen-lockfile so the workflow fails fast if the lock file and manifest ever drift.
         run: pnpm install --frozen-lockfile
+
+      - name: Run Biome lint
+        # We stick to lint-only mode in CI; automated fixes stay a developer responsibility.
+        run: pnpm run lint:biome
+
+      - name: Run TypeScript
+        run: pnpm run typecheck
 
       - name: Run Vitest (full suite)
         # Running without --changed ensures CI always covers the entire test matrix before merges land.

@@ -56,7 +56,8 @@ if (
 }
 
 let imageSampler: ImageSampler | null = null;
-let uploadedImage: HTMLImageElement | null = null;
+// The <img> element backs both the visible preview and the sampler's pixel source.
+// We draw directly from the element on load, so no extra state is needed.
 
 let minFreq = Number(minFreqSlider.value) || 200;
 let maxFreq = Number(maxFreqSlider.value) || 700;
@@ -243,9 +244,8 @@ uploadInput.addEventListener("change", (event) => {
 
   imgElement.onload = () => {
     URL.revokeObjectURL(objectUrl);
-    uploadedImage = imgElement;
     imgCtx.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
-    imgCtx.drawImage(uploadedImage, 0, 0, imgCanvas.width, imgCanvas.height);
+    imgCtx.drawImage(imgElement, 0, 0, imgCanvas.width, imgCanvas.height);
 
     // Build the sampler only after the image is actually drawn, so we encode real pixels.
     imageSampler = new ImageSampler(imgCanvas);

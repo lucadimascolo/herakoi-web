@@ -238,8 +238,6 @@ uploadInput.addEventListener("change", (event) => {
     return;
   }
 
-  const _targetSize = { width: imgCanvas.width, height: imgCanvas.height };
-
   const imgElement = inputImage ?? new Image();
   const objectUrl = URL.createObjectURL(file);
 

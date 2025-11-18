@@ -4,6 +4,7 @@ import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { HAND_CONNECTIONS, type NormalizedLandmarkList, type Results } from "@mediapipe/hands";
 import { HandsDetector } from "#src/vision/hands";
+import { ImageSampler } from "#src/vision/imageEncoding";
 
 const uploadInput = document.getElementById("upload") as HTMLInputElement | null;
 const videoElement = document.getElementById("input_video") as HTMLVideoElement | null;
@@ -54,7 +55,8 @@ if (
   throw new Error("Expected frequency and volume controls to be present.");
 }
 
-let grayscaleData: ImageData | null = null;
+let imageSampler: ImageSampler | null = null;
+let uploadedImage: HTMLImageElement | null = null;
 
 let minFreq = Number(minFreqSlider.value) || 200;
 let maxFreq = Number(maxFreqSlider.value) || 700;
@@ -156,8 +158,7 @@ hands.onResults((results: Results) => {
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
   canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-  imgCtx.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
-  imgCtx.drawImage(inputImage, 0, 0, imgCanvas.width, imgCanvas.height);
+  // We leave the user's uploaded image intact between frames; only new uploads repaint it.
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
   let handDetected = false;
@@ -195,30 +196,20 @@ hands.onResults((results: Results) => {
       overlayCtx.lineWidth = 2;
       overlayCtx.strokeRect(x - boxSize / 2, y - boxSize / 2, boxSize, boxSize);
 
-      if (grayscaleData) {
-        const pixelX = Math.floor(x);
-        const pixelY = Math.floor(y);
+      const pixelX = Math.floor(x);
+      const pixelY = Math.floor(y);
 
-        if (
-          pixelX >= 0 &&
-          pixelX < overlayCanvas.width &&
-          pixelY >= 0 &&
-          pixelY < overlayCanvas.height
-        ) {
-          const i = (pixelY * overlayCanvas.width + pixelX) * 4;
-          const hue = grayscaleData.data[i];
-          const freq = minFreq + (hue / 255) * (maxFreq - minFreq);
+      const pixelSample = imageSampler?.sampleAtPixel(pixelX, pixelY);
+      if (pixelSample) {
+        const freq = minFreq + (pixelSample.hueByte / 255) * (maxFreq - minFreq);
+        const volume = minVol + (pixelSample.valueByte / 255) * (maxVol - minVol);
+        playFrequency(freq, volume);
 
-          const brightness = grayscaleData.data[i + 2];
-          const volume = minVol + (brightness / 255) * (maxVol - minVol);
-          playFrequency(freq, volume);
-
-          overlayCtx.fillStyle = "white";
-          overlayCtx.fillRect(x + 10, y - 30, 80, 20);
-          overlayCtx.fillStyle = "black";
-          overlayCtx.font = "12px sans-serif";
-          overlayCtx.fillText(`${Math.round(freq)} Hz`, x + 15, y - 15);
-        }
+        overlayCtx.fillStyle = "white";
+        overlayCtx.fillRect(x + 10, y - 30, 80, 20);
+        overlayCtx.fillStyle = "black";
+        overlayCtx.font = "12px sans-serif";
+        overlayCtx.fillText(`${Math.round(freq)} Hz`, x + 15, y - 15);
       }
     }
   }
@@ -239,56 +230,39 @@ const camera = new Camera(videoElement, {
 });
 camera.start();
 
-uploadInput.addEventListener("change", (event) => {
+// We pass the raw file straight to ImageSampler so it owns decoding, scaling, and byte encoding.
+// That keeps main focused on wiring callbacks rather than managing canvases or pixel math.
+uploadInput.addEventListener("change", async (event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    if (!e.target?.result) return;
-    inputImage.onload = () => {
-      imgCtx.drawImage(inputImage, 0, 0, imgCanvas.width, imgCanvas.height);
+  const targetSize = { width: imgCanvas.width, height: imgCanvas.height };
 
-      grayscaleData = imgCtx.getImageData(0, 0, imgCanvas.width, imgCanvas.height);
-      const { data } = grayscaleData;
+  const imgElement = inputImage ?? new Image();
+  const objectUrl = URL.createObjectURL(file);
 
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i] / 255;
-        const g = data[i + 1] / 255;
-        const b = data[i + 2] / 255;
-
-        const cmax = Math.max(r, g, b);
-        const cmin = Math.min(r, g, b);
-        const delta = cmax - cmin;
-
-        let h = 0;
-        if (delta !== 0) {
-          if (cmax === r) {
-            h = 60 * (((g - b) / delta) % 6);
-          } else if (cmax === g) {
-            h = 60 * ((b - r) / delta + 2);
-          } else {
-            h = 60 * ((r - g) / delta + 4);
-          }
-        }
-
-        if (h < 0) h += 360;
-
-        const v = cmax;
-        const hByte = Math.round((h / 360) * 255);
-        const vByte = Math.round(v * 255);
-
-        data[i] = hByte;
-        data[i + 1] = hByte;
-        data[i + 2] = vByte;
-      }
-    };
-
-    inputImage.src = e.target.result as string;
+  imgElement.onload = () => {
+    URL.revokeObjectURL(objectUrl);
+    uploadedImage = imgElement;
+    imgCtx.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+    imgCtx.drawImage(uploadedImage, 0, 0, imgCanvas.width, imgCanvas.height);
   };
-  reader.readAsDataURL(file);
+
+  imgElement.onerror = (error) => {
+    URL.revokeObjectURL(objectUrl);
+    console.error("Failed to load image element for display", error);
+  };
+
+  imgElement.src = objectUrl;
+
+  try {
+    imageSampler = await ImageSampler.fromFile(file, targetSize);
+  } catch (error) {
+    // We log instead of throwing so the live demo keeps running even if decoding fails.
+    console.error("Failed to load image for sampling", error);
+  }
 });
 
 function setupCanvasSizes() {

@@ -159,7 +159,7 @@ hands.onResults((results: Results) => {
 
         const toneId = `hand-${handIndex}-index-tip`;
         toneUpdates.push({ id: toneId, params: { frequency: freq, volume } });
-        debugTools.recordToneSample({
+        debugTools.logToneSample({
           toneId,
           frequency: freq,
           volume,

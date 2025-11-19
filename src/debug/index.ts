@@ -4,11 +4,11 @@ import { createDebugPanel, type DebugToneSample } from "./panel";
 const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
 
 export type DebugTools = {
-  recordToneSample: (sample: DebugToneSample) => void;
+  logToneSample: (sample: DebugToneSample) => void;
 };
 
 const noopTools: DebugTools = {
-  recordToneSample: () => {},
+  logToneSample: () => {},
 };
 
 export const setupDebugTools = (): DebugTools => {
@@ -20,6 +20,6 @@ export const setupDebugTools = (): DebugTools => {
   setupConsoleSonifier();
 
   return {
-    recordToneSample: panel.record,
+    logToneSample: panel.logSample,
   };
 };

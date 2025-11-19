@@ -6,11 +6,11 @@ export type DebugToneSample = {
   valueByte: number;
 };
 
-export type PanelRecorder = {
-  record: (sample: DebugToneSample) => void;
+export type PanelLogger = {
+  logSample: (sample: DebugToneSample) => void;
 };
 
-export const createDebugPanel = (): PanelRecorder => {
+export const createDebugPanel = (): PanelLogger => {
   const panel = ensurePanel();
   const toneSamples = new Map<string, DebugToneSample>();
 
@@ -25,7 +25,7 @@ export const createDebugPanel = (): PanelRecorder => {
   };
 
   return {
-    record: (sample) => {
+    logSample: (sample) => {
       toneSamples.set(sample.toneId, sample);
       render();
     },

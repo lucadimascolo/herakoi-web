@@ -5,33 +5,35 @@ import type { Results } from "@mediapipe/hands";
 import { Sonifier, type ToneUpdate } from "#src/audio/sonification";
 import { drawFingerFocus, drawFrequencyLabel, drawHands } from "#src/canvas/overlay";
 import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
-import { getFingerFocus, mirrorHandLandmarks } from "#src/vision/handGeometry";
+import { getFingerFocus } from "#src/vision/handGeometry";
 import { HandsDetector } from "#src/vision/hands";
 import { ImageSampler } from "#src/vision/imageEncoding";
 
-const uploadInput = document.getElementById("upload") as HTMLInputElement | null;
-const videoElement = document.getElementById("input_video") as HTMLVideoElement | null;
-const canvasElement = document.getElementById("output_canvas") as HTMLCanvasElement | null;
-const imgCanvas = document.getElementById("imageCanvas") as HTMLCanvasElement | null;
-const overlayCanvas = document.getElementById("imageOverlay") as HTMLCanvasElement | null;
-const inputImage = document.getElementById("inputImage") as HTMLImageElement | null;
+const imageUploadInput = document.getElementById("upload") as HTMLInputElement | null;
+const cameraVideoElement = document.getElementById("input_video") as HTMLVideoElement | null;
+const videoHandsOverlayCanvas = document.getElementById(
+  "output_canvas",
+) as HTMLCanvasElement | null;
+const sourceImageCanvas = document.getElementById("imageCanvas") as HTMLCanvasElement | null;
+const imageOverlayCanvas = document.getElementById("imageOverlay") as HTMLCanvasElement | null;
+const uploadedImageElement = document.getElementById("inputImage") as HTMLImageElement | null;
 
 if (
-  !uploadInput ||
-  !videoElement ||
-  !canvasElement ||
-  !imgCanvas ||
-  !overlayCanvas ||
-  !inputImage
+  !imageUploadInput ||
+  !cameraVideoElement ||
+  !videoHandsOverlayCanvas ||
+  !sourceImageCanvas ||
+  !imageOverlayCanvas ||
+  !uploadedImageElement
 ) {
   throw new Error("Expected legacy markup to exist before bootstrapping the test app.");
 }
 
-const canvasCtx = canvasElement.getContext("2d");
-const imgCtx = imgCanvas.getContext("2d");
-const overlayCtx = overlayCanvas.getContext("2d");
+const videoHandsOverlayCtx = videoHandsOverlayCanvas.getContext("2d");
+const imgCtx = sourceImageCanvas.getContext("2d");
+const imageOverlayCtx = imageOverlayCanvas.getContext("2d");
 
-if (!canvasCtx || !imgCtx || !overlayCtx) {
+if (!videoHandsOverlayCtx || !imgCtx || !imageOverlayCtx) {
   throw new Error("Unable to acquire 2D canvas contexts.");
 }
 
@@ -105,44 +107,57 @@ const hands = handsDetector.getInstance();
 
 const sonifier = new Sonifier();
 const debugTools = setupDebugTools();
-const overlayContext = {
-  baseCtx: canvasCtx,
-  overlayCtx,
-};
 
 hands.onResults((results: Results) => {
-  canvasCtx.save();
-  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  videoHandsOverlayCtx.save();
+  imageOverlayCtx.save();
+  videoHandsOverlayCtx.clearRect(
+    0,
+    0,
+    videoHandsOverlayCanvas.width,
+    videoHandsOverlayCanvas.height,
+  );
   // this draw replicate the video image. since we have the video element tied to the camera, it's not needed to draw again.
   // we keep this line as reference in the case we want to follow a different approach to show the camera output
-  // canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+  // videoHandsOverlayCtx.drawImage(
+  //   results.image,
+  //   0,
+  //   0,
+  //   videoHandsOverlayCanvas.width,
+  //   videoHandsOverlayCanvas.height,
+  // );
 
-  // We leave the user's uploaded image intact between frames; only new uploads repaint it.
-  // overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  imageOverlayCtx.clearRect(0, 0, imageOverlayCanvas.width, imageOverlayCanvas.height);
 
   const toneUpdates: ToneUpdate[] = [];
   const debugToneSamples: DebugToneSample[] = [];
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
     for (const [handIndex, handLms] of results.multiHandLandmarks.entries()) {
-      const mirroredHandLms = mirrorHandLandmarks(handLms);
-      drawHands(overlayContext, handLms, mirroredHandLms);
+      drawHands([
+        { ctx: videoHandsOverlayCtx, landmarks: handLms },
+        { ctx: imageOverlayCtx, landmarks: handLms },
+      ]);
 
       const fingerFocus = getFingerFocus(
-        mirroredHandLms,
-        overlayCanvas.width,
-        overlayCanvas.height,
+        handLms,
+        imageOverlayCanvas.width,
+        imageOverlayCanvas.height,
       );
       if (!fingerFocus) {
         continue;
       }
 
-      drawFingerFocus(overlayCtx, fingerFocus);
+      drawFingerFocus(imageOverlayCtx, fingerFocus);
 
       const pixelX = Math.floor(fingerFocus.x);
       const pixelY = Math.floor(fingerFocus.y);
 
-      const pixelSample = imageSampler?.sampleAtPixel(pixelX, pixelY);
+      const mirroredPixelX = Math.max(
+        0,
+        Math.min(imageOverlayCanvas.width - 1, imageOverlayCanvas.width - 1 - pixelX),
+      );
+      const pixelSample = imageSampler?.sampleAtPixel(mirroredPixelX, pixelY);
       if (!pixelSample) {
         continue;
       }
@@ -158,19 +173,20 @@ hands.onResults((results: Results) => {
         hueByte: pixelSample.hueByte,
         valueByte: pixelSample.valueByte,
       });
-      drawFrequencyLabel(overlayCtx, fingerFocus, freq, handIndex);
+      drawFrequencyLabel(imageOverlayCtx, fingerFocus, freq, handIndex);
     }
   }
 
   sonifier.syncTones(toneUpdates);
   debugTools.logToneSamples(debugToneSamples);
 
-  canvasCtx.restore();
+  imageOverlayCtx.restore();
+  videoHandsOverlayCtx.restore();
 });
 
-const camera = new Camera(videoElement, {
+const camera = new Camera(cameraVideoElement, {
   onFrame: async () => {
-    await hands.send({ image: videoElement });
+    await hands.send({ image: cameraVideoElement });
   },
   width: 640,
   height: 480,
@@ -179,22 +195,22 @@ camera.start();
 
 // We pass the raw file straight to ImageSampler so it owns decoding, scaling, and byte encoding.
 // That keeps main focused on wiring callbacks rather than managing canvases or pixel math.
-uploadInput.addEventListener("change", (event) => {
+imageUploadInput.addEventListener("change", (event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) {
     return;
   }
 
-  const imgElement = inputImage ?? new Image();
+  const imgElement = uploadedImageElement ?? new Image();
   const objectUrl = URL.createObjectURL(file);
 
   imgElement.onload = () => {
     URL.revokeObjectURL(objectUrl);
-    imgCtx.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
-    imgCtx.drawImage(imgElement, 0, 0, imgCanvas.width, imgCanvas.height);
+    imgCtx.clearRect(0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
+    imgCtx.drawImage(imgElement, 0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
 
     // Build the sampler only after the image is actually drawn, so we encode real pixels.
-    imageSampler = new ImageSampler(imgCanvas);
+    imageSampler = new ImageSampler(sourceImageCanvas);
   };
 
   imgElement.onerror = (error) => {
@@ -209,7 +225,7 @@ function setupCanvasSizes() {
   const width = 640;
   const height = 480;
 
-  const canvases = [canvasElement, imgCanvas, overlayCanvas].filter(
+  const canvases = [videoHandsOverlayCanvas, sourceImageCanvas, imageOverlayCanvas].filter(
     (canvas): canvas is HTMLCanvasElement => canvas instanceof HTMLCanvasElement,
   );
 

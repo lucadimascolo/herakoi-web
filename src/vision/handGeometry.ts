@@ -1,25 +1,16 @@
 import type { NormalizedLandmarkList } from "@mediapipe/hands";
 
-export const mirrorHandLandmarks = (
-  handLandmarks: NormalizedLandmarkList,
-): NormalizedLandmarkList =>
-  handLandmarks.map((landmark) => ({
-    x: 1 - landmark.x,
-    y: landmark.y,
-    z: landmark.z,
-  }));
-
 export type FingerFocus = {
   x: number;
   y: number;
 };
 
 export const getFingerFocus = (
-  mirroredHandLandmarks: NormalizedLandmarkList,
+  handLandmarks: NormalizedLandmarkList,
   overlayWidth: number,
   overlayHeight: number,
 ): FingerFocus | null => {
-  const indexTip = mirroredHandLandmarks[8];
+  const indexTip = handLandmarks[8];
   if (!indexTip) {
     return null;
   }

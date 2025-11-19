@@ -1,34 +1,24 @@
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { HAND_CONNECTIONS, type NormalizedLandmarkList } from "@mediapipe/hands";
 
-export type OverlayContext = {
-  baseCtx: CanvasRenderingContext2D;
-  overlayCtx: CanvasRenderingContext2D;
-};
-
 export type FingerFocus = {
   x: number;
   y: number;
 };
 
-export function drawHands(
-  context: OverlayContext,
-  handLandmarks: NormalizedLandmarkList,
-  mirroredHandLandmarks: NormalizedLandmarkList,
-): void {
-  const { baseCtx, overlayCtx } = context;
+export type HandOverlayLayer = {
+  ctx: CanvasRenderingContext2D;
+  landmarks: NormalizedLandmarkList;
+};
 
-  drawConnectors(baseCtx, handLandmarks, HAND_CONNECTIONS, {
-    color: "#00FF00",
-    lineWidth: 2,
-  });
-  drawLandmarks(baseCtx, handLandmarks, { color: "#FF0000", lineWidth: 1 });
-
-  drawConnectors(overlayCtx, mirroredHandLandmarks, HAND_CONNECTIONS, {
-    color: "#00FF00",
-    lineWidth: 2,
-  });
-  drawLandmarks(overlayCtx, mirroredHandLandmarks, { color: "#FF0000", lineWidth: 1 });
+export function drawHands(layers: HandOverlayLayer[]): void {
+  for (const { ctx, landmarks } of layers) {
+    drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {
+      color: "#00FF00",
+      lineWidth: 2,
+    });
+    drawLandmarks(ctx, landmarks, { color: "#FF0000", lineWidth: 1 });
+  }
 }
 
 export function drawFingerFocus(ctx: CanvasRenderingContext2D, focus: FingerFocus): void {

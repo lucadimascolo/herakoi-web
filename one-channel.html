@@ -6,29 +6,52 @@
     <title>MediaPipe JS + Image Sonification (Mirrored)</title>
   </head>
   <body>
-    <input type="file" id="upload" accept="image/*" />
     <div id="container">
       <div class="panel">
-        <canvas id="imageCanvas"></canvas>
-        <canvas id="imageOverlay" style="z-index: 2"></canvas>
-        <img id="inputImage" crossorigin="anonymous" />
-        <div class="controls">
-          <label for="frequency-range">Frequency Range:</label>
+        <div class="debug-layer" data-debug-label="Source Image Canvas (#imageCanvas)" style="--debug-label-index: 0">
+          <canvas id="imageCanvas" class="mirror-x"></canvas>
+        </div>
+        <div
+          class="debug-layer"
+          data-debug-label="Image Overlay Canvas (#imageOverlay)"
+          style="--debug-label-index: 1"
+        >
+          <canvas id="imageOverlay" class="mirror-x" style="z-index: 2"></canvas>
+        </div>
+        <div class="debug-layer" data-debug-label="Reference Image Element (#inputImage)" style="--debug-label-index: 2">
+          <img id="inputImage" class="mirror-x" crossorigin="anonymous" />
+        </div>
+      </div>
+      <div class="panel">
+        <div class="debug-layer" data-debug-label="Camera Video (#input_video)" style="--debug-label-index: 0">
+          <video id="input_video" playsinline muted autoplay></video>
+        </div>
+        <div class="debug-layer" data-debug-label="Video Overlay Canvas (#output_canvas)" style="--debug-label-index: 1">
+          <canvas id="output_canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="debug-ui">
+      <label class="debug-ui__upload">
+        <span class="debug-ui__label">Source Image File</span>
+        <input type="file" id="upload" accept="image/*" />
+      </label>
+      <div class="debug-ui__controls">
+        <p class="debug-ui__label">Frequency Range</p>
+        <div class="debug-ui__sliders">
           <input type="range" id="min-freq" min="100" max="500" value="200" step="10" />
           <span id="min-freq-value">200</span> Hz
           <input type="range" id="max-freq" min="500" max="2000" value="700" step="10" />
           <span id="max-freq-value">700</span> Hz
-          <br /><br />
-          <label for="volume-range">Volume Range:</label>
+        </div>
+        <p class="debug-ui__label">Volume Range</p>
+        <div class="debug-ui__sliders">
           <input type="range" id="min-vol" min="0.0" max="0.3" value="0.0" step="0.01" />
           <span id="min-vol-value">0.00</span>
           <input type="range" id="max-vol" min="0.3" max="1.0" value="0.3" step="0.01" />
           <span id="max-vol-value">1.00</span>
         </div>
-      </div>
-      <div class="panel">
-        <video id="input_video" playsinline muted autoplay></video>
-        <canvas id="output_canvas"></canvas>
       </div>
     </div>
 

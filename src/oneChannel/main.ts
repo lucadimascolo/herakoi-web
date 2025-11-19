@@ -105,29 +105,7 @@ const handsDetector = new HandsDetector({
 const hands = handsDetector.getInstance();
 
 const sonifier = new Sonifier();
-const debugSonifier = new Sonifier();
-const debugTools = setupDebugTools({
-  playTone: (toneId, frequency, volume) => {
-    debugSonifier.updateTone(toneId, { frequency, volume });
-  },
-});
-
-// Expose a lightweight debug hook so we can drive tones from the console while iterating.
-// Useful for manual QA: call `window.debugSonifier("test", 440, 0.2)` to hear a tone.
-(
-  window as typeof window & {
-    debugSonifier?: (id: string, frequency: number, volume: number) => void;
-  }
-).debugSonifier = (id: string, frequency: number, volume: number) => {
-  debugSonifier.updateTone(id, { frequency, volume });
-  debugTools.recordToneSample({
-    toneId: id,
-    frequency,
-    volume,
-    hueByte: 0,
-    valueByte: 0,
-  });
-};
+const debugTools = setupDebugTools();
 
 hands.onResults((results: Results) => {
   canvasCtx.save();

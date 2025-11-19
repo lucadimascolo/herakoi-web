@@ -62,6 +62,21 @@ body {
   color: #7df9ff;
 }
 
+.debug-ui__button {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(125, 249, 255, 0.6);
+  border-radius: 4px;
+  background: transparent;
+  color: #7df9ff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.debug-ui__button:hover {
+  background: rgba(125, 249, 255, 0.1);
+}
+
 .panel {
   position: relative;
   width: 640px;
@@ -97,4 +112,8 @@ img {
   left: 0;
   width: 640px;
   height: 480px;
+}
+
+body.is-mirrored #input_video {
+  transform: scaleX(-1);
 }

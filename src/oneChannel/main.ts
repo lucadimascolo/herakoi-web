@@ -46,7 +46,7 @@ const minVolSlider = document.getElementById("min-vol") as HTMLInputElement | nu
 const maxVolSlider = document.getElementById("max-vol") as HTMLInputElement | null;
 const minVolValue = document.getElementById("min-vol-value");
 const maxVolValue = document.getElementById("max-vol-value");
-const mirrorToggle = document.getElementById("mirror-toggle") as HTMLInputElement | null;
+const mirrorToggleButton = document.getElementById("mirror-toggle") as HTMLButtonElement | null;
 
 if (
   !minFreqSlider ||
@@ -57,7 +57,7 @@ if (
   !maxVolSlider ||
   !minVolValue ||
   !maxVolValue ||
-  !mirrorToggle
+  !mirrorToggleButton
 ) {
   throw new Error("Expected frequency and volume controls to be present.");
 }
@@ -81,7 +81,7 @@ maxFreqSlider.addEventListener("input", (event) => {
 
 let minVol = Number(minVolSlider.value) || 0;
 let maxVol = Number(maxVolSlider.value) || 0.3;
-let isMirrored = mirrorToggle.checked;
+let isMirrored = document.body.classList.contains("is-mirrored");
 
 minVolSlider.addEventListener("input", (event) => {
   const value = Number((event.target as HTMLInputElement).value);
@@ -95,16 +95,17 @@ maxVolSlider.addEventListener("input", (event) => {
   maxVolValue.textContent = value.toFixed(2);
 });
 
-const syncVideoMirror = () => {
-  cameraVideoElement.style.transform = isMirrored ? "scaleX(-1)" : "";
+const setMirrorState = (nextState: boolean) => {
+  isMirrored = nextState;
+  document.body.classList.toggle("is-mirrored", isMirrored);
+  mirrorToggleButton.textContent = isMirrored ? "Disable mirror mode" : "Enable mirror mode";
 };
 
-mirrorToggle.addEventListener("input", (event) => {
-  isMirrored = (event.target as HTMLInputElement).checked;
-  syncVideoMirror();
+mirrorToggleButton.addEventListener("click", () => {
+  setMirrorState(!isMirrored);
 });
 
-syncVideoMirror();
+setMirrorState(isMirrored);
 
 /*
  * We reuse HandsDetector so our MediaPipe asset wiring stays centralized with src/vision/hands.ts.

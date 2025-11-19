@@ -7,7 +7,7 @@
   <title>MediaPipe JS + Image Sonification</title>
 </head>
 
-<body>
+<body class="is-mirrored">
   <div id="container">
     <div class="panel">
       <div class="debug-layer"
@@ -64,10 +64,9 @@
         <span id="max-vol-value">1.00</span>
       </div>
       <p class="debug-ui__label">Mirror Mode</p>
-      <label class="debug-ui__sliders" for="mirror-toggle">
-        <input type="checkbox" id="mirror-toggle" />
-        <span>Mirror camera feed and overlays</span>
-      </label>
+      <button type="button" id="mirror-toggle" class="debug-ui__button">
+        Enable mirror mode
+      </button>
     </div>
   </div>
 

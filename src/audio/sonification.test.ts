@@ -75,4 +75,22 @@ describe("Sonifier", () => {
     expect(oscA.stop).toHaveBeenCalled();
     expect(oscB.stop).toHaveBeenCalled();
   });
+
+  it("syncTones starts updates and silences missing ids", async () => {
+    const sonifier = new Sonifier(ctx as unknown as AudioContext);
+    sonifier.syncTones([
+      { id: "a", params: { frequency: 300, volume: 0.1 } },
+      { id: "b", params: { frequency: 500, volume: 0.2 } },
+    ]);
+
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(2);
+
+    sonifier.syncTones([{ id: "b", params: { frequency: 550, volume: 0.15 } }]);
+
+    await Promise.resolve();
+
+    const oscA = ctx.createOscillator.mock.results[0].value as FakeOscillator;
+    expect(oscA.stop).toHaveBeenCalled();
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(2);
+  });
 });

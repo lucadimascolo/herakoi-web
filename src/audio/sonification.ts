@@ -10,6 +10,11 @@ export type ToneParams = {
   volume: number;
 };
 
+export type ToneUpdate = {
+  id: ToneId;
+  params: ToneParams;
+};
+
 type ToneNodes = {
   osc: OscillatorNode;
   gain: GainNode;
@@ -45,6 +50,21 @@ export class Sonifier {
 
     existing.gain.gain.setValueAtTime(params.volume, this.ctx.currentTime);
     existing.osc.frequency.setValueAtTime(params.frequency, this.ctx.currentTime);
+  }
+
+  syncTones(updates: ToneUpdate[]): void {
+    const seen = new Set<ToneId>();
+    for (const update of updates) {
+      this.updateTone(update.id, update.params);
+      seen.add(update.id);
+    }
+
+    const currentIds = Array.from(this.nodes.keys());
+    for (const id of currentIds) {
+      if (!seen.has(id)) {
+        this.stopTone(id);
+      }
+    }
   }
 
   stopTone(id: ToneId): void {

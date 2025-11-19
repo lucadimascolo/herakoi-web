@@ -3,7 +3,7 @@ import "./style.css";
 import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { HAND_CONNECTIONS, type NormalizedLandmarkList, type Results } from "@mediapipe/hands";
-import { Sonifier } from "#src/audio/sonification";
+import { Sonifier, type ToneUpdate } from "#src/audio/sonification";
 import { setupDebugTools } from "#src/debug/index";
 import { HandsDetector } from "#src/vision/hands";
 import { ImageSampler } from "#src/vision/imageEncoding";
@@ -137,10 +137,11 @@ hands.onResults((results: Results) => {
   // We leave the user's uploaded image intact between frames; only new uploads repaint it.
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-  let handDetected = false;
+  let _handDetected = false;
+  const toneUpdates: ToneUpdate[] = [];
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-    handDetected = true;
+    _handDetected = true;
     for (const [handIndex, handLms] of results.multiHandLandmarks.entries()) {
       drawConnectors(canvasCtx, handLms, HAND_CONNECTIONS, {
         color: "#00FF00",
@@ -181,7 +182,7 @@ hands.onResults((results: Results) => {
         const volume = minVol + (pixelSample.valueByte / 255) * (maxVol - minVol);
 
         const toneId = `hand-${handIndex}-index-tip`;
-        sonifier.updateTone(toneId, { frequency: freq, volume });
+        toneUpdates.push({ id: toneId, params: { frequency: freq, volume } });
         debugTools.recordToneSample({
           toneId,
           frequency: freq,
@@ -199,9 +200,7 @@ hands.onResults((results: Results) => {
     }
   }
 
-  if (!handDetected) {
-    sonifier.stopAll();
-  }
+  sonifier.syncTones(toneUpdates);
 
   canvasCtx.restore();
 });

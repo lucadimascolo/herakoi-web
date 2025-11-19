@@ -84,10 +84,9 @@ body {
   min-width: 140px;
 }
 
-.control-sliders input[type="number"] {
-  width: 64px;
+.control-field input[type="range"] {
+  flex: 1;
 }
-
 .control-label {
   margin: 0;
   font-size: 12px;

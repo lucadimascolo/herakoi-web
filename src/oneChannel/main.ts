@@ -141,21 +141,22 @@ hands.onResults((results: Results) => {
       const pixelY = Math.floor(fingerFocus.y);
 
       const pixelSample = imageSampler?.sampleAtPixel(pixelX, pixelY);
-      if (pixelSample) {
-        const freq = minFreq + (pixelSample.hueByte / 255) * (maxFreq - minFreq);
-        const volume = minVol + (pixelSample.valueByte / 255) * (maxVol - minVol);
-
-        const toneId = `hand-${handIndex}-index-tip`;
-        toneUpdates.push({ id: toneId, params: { frequency: freq, volume } });
-        debugToneSamples.push({
-          toneId,
-          frequency: freq,
-          volume,
-          hueByte: pixelSample.hueByte,
-          valueByte: pixelSample.valueByte,
-        });
-        drawFrequencyLabel(overlayCtx, fingerFocus, freq, handIndex);
+      if (!pixelSample) {
+        continue;
       }
+      const freq = minFreq + (pixelSample.hueByte / 255) * (maxFreq - minFreq);
+      const volume = minVol + (pixelSample.valueByte / 255) * (maxVol - minVol);
+
+      const toneId = `hand-${handIndex}-index-tip`;
+      toneUpdates.push({ id: toneId, params: { frequency: freq, volume } });
+      debugToneSamples.push({
+        toneId,
+        frequency: freq,
+        volume,
+        hueByte: pixelSample.hueByte,
+        valueByte: pixelSample.valueByte,
+      });
+      drawFrequencyLabel(overlayCtx, fingerFocus, freq, handIndex);
     }
   }
 

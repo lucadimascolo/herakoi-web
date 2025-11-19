@@ -251,6 +251,19 @@ void startCamera(currentFacingMode);
  */
 const uploadBufferImage = new Image();
 uploadBufferImage.crossOrigin = "anonymous";
+let hasUploadedSourceImage = false;
+
+const redrawSourceImage = () => {
+  if (!hasUploadedSourceImage) {
+    return;
+  }
+
+  imgCtx.clearRect(0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
+  imgCtx.drawImage(uploadBufferImage, 0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
+
+  // Build the sampler only after the image is actually drawn, so we encode real pixels.
+  imageSampler = new ImageSampler(sourceImageCanvas);
+};
 
 // We pass the raw file straight to ImageSampler so it owns decoding, scaling, and byte encoding.
 // That keeps main focused on wiring callbacks rather than managing canvases or pixel math.
@@ -263,12 +276,9 @@ imageUploadInput.addEventListener("change", (event) => {
   const objectUrl = URL.createObjectURL(file);
 
   uploadBufferImage.onload = () => {
+    hasUploadedSourceImage = true;
+    redrawSourceImage();
     URL.revokeObjectURL(objectUrl);
-    imgCtx.clearRect(0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
-    imgCtx.drawImage(uploadBufferImage, 0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
-
-    // Build the sampler only after the image is actually drawn, so we encode real pixels.
-    imageSampler = new ImageSampler(sourceImageCanvas);
   };
 
   uploadBufferImage.onerror = (error) => {
@@ -279,18 +289,34 @@ imageUploadInput.addEventListener("change", (event) => {
   uploadBufferImage.src = objectUrl;
 });
 
-function setupCanvasSizes() {
-  const width = 640;
-  const height = 480;
+const FALLBACK_CANVAS_WIDTH = 640;
+const PANEL_ASPECT_RATIO = 4 / 3;
+const FALLBACK_CANVAS_HEIGHT = Math.round(FALLBACK_CANVAS_WIDTH / PANEL_ASPECT_RATIO);
 
+const measureCanvasSize = (canvas: HTMLCanvasElement): { width: number; height: number } => {
+  const parentRect = canvas.parentElement?.getBoundingClientRect();
+  const rect = parentRect && parentRect.width > 0 ? parentRect : canvas.getBoundingClientRect();
+  const measuredWidth = Math.round(rect.width);
+  const measuredHeight = Math.round(rect.height);
+
+  const width = measuredWidth || FALLBACK_CANVAS_WIDTH;
+  const height = measuredHeight || Math.round(width / PANEL_ASPECT_RATIO) || FALLBACK_CANVAS_HEIGHT;
+  return { width, height };
+};
+
+function setupCanvasSizes() {
   const canvases = [videoHandsOverlayCanvas, sourceImageCanvas, imageOverlayCanvas].filter(
     (canvas): canvas is HTMLCanvasElement => canvas instanceof HTMLCanvasElement,
   );
 
   for (const canvas of canvases) {
+    const { width, height } = measureCanvasSize(canvas);
     canvas.width = width;
     canvas.height = height;
   }
+
+  // Resizing clears canvas pixels, so we redraw the uploaded image (if any) to keep sampling in sync.
+  redrawSourceImage();
 }
 
 setupCanvasSizes();

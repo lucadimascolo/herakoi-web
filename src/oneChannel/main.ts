@@ -3,6 +3,7 @@ import "./style.css";
 import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { HAND_CONNECTIONS, type NormalizedLandmarkList, type Results } from "@mediapipe/hands";
+import { Sonifier } from "#src/audio/sonification";
 import { HandsDetector } from "#src/vision/hands";
 import { ImageSampler } from "#src/vision/imageEncoding";
 
@@ -102,57 +103,7 @@ const handsDetector = new HandsDetector({
 });
 const hands = handsDetector.getInstance();
 
-const audioCtxCtor =
-  window.AudioContext ||
-  (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-
-if (!audioCtxCtor) {
-  throw new Error("Web Audio API is not available in this browser.");
-}
-
-const audioCtx = new audioCtxCtor();
-let oscillator: OscillatorNode | null = null;
-let gainNode: GainNode | null = null;
-
-function playFrequency(freq: number, volume = 0.5) {
-  if (!oscillator) {
-    oscillator = audioCtx.createOscillator();
-    gainNode = audioCtx.createGain();
-
-    oscillator.type = "sine";
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.start();
-  }
-
-  if (!gainNode || !oscillator) {
-    return;
-  }
-
-  gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
-  oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-}
-
-function stopFrequency() {
-  if (!oscillator || !gainNode) {
-    return;
-  }
-
-  gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-
-  const shuttingDownOscillator = oscillator;
-  const shuttingDownGain = gainNode;
-
-  setTimeout(() => {
-    shuttingDownOscillator?.stop();
-    shuttingDownOscillator?.disconnect();
-    shuttingDownGain?.disconnect();
-    oscillator = null;
-    gainNode = null;
-  }, 100);
-}
+const sonifier = new Sonifier();
 
 hands.onResults((results: Results) => {
   canvasCtx.save();
@@ -166,7 +117,7 @@ hands.onResults((results: Results) => {
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
     handDetected = true;
-    for (const handLms of results.multiHandLandmarks) {
+    for (const [handIndex, handLms] of results.multiHandLandmarks.entries()) {
       drawConnectors(canvasCtx, handLms, HAND_CONNECTIONS, {
         color: "#00FF00",
         lineWidth: 2,
@@ -204,7 +155,9 @@ hands.onResults((results: Results) => {
       if (pixelSample) {
         const freq = minFreq + (pixelSample.hueByte / 255) * (maxFreq - minFreq);
         const volume = minVol + (pixelSample.valueByte / 255) * (maxVol - minVol);
-        playFrequency(freq, volume);
+
+        const toneId = `hand-${handIndex}-index-tip`;
+        sonifier.updateTone(toneId, { frequency: freq, volume });
 
         overlayCtx.fillStyle = "white";
         overlayCtx.fillRect(x + 10, y - 30, 80, 20);
@@ -216,7 +169,7 @@ hands.onResults((results: Results) => {
   }
 
   if (!handDetected) {
-    stopFrequency();
+    sonifier.stopAll();
   }
 
   canvasCtx.restore();

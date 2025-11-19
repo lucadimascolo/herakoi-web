@@ -2,12 +2,24 @@ import "./style.css";
 
 import { Camera } from "@mediapipe/camera_utils";
 import type { NormalizedLandmarkList, Results } from "@mediapipe/hands";
+import figlet from "figlet";
+import StarStripsFont from "figlet/importable-fonts/Star Strips.js";
 import { Sonifier, type ToneUpdate } from "#src/audio/sonification";
 import { drawFingerFocus, drawFrequencyLabel, drawHands } from "#src/canvas/overlay";
 import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
 import { getFingerFocus } from "#src/vision/handGeometry";
 import { HandsDetector } from "#src/vision/hands";
 import { ImageSampler } from "#src/vision/imageEncoding";
+
+figlet.parseFont("Star Strips", StarStripsFont);
+const heraBanner = figlet.textSync("HERA", { font: "Star Strips" });
+const koiBanner = figlet.textSync("KOI", { font: "Star Strips" });
+const herakoiBanner = `${heraBanner}\n${koiBanner}`;
+const bannerDivider = "* ".repeat(44).trim();
+
+console.log(
+  `\n${bannerDivider}\n${herakoiBanner}\n${bannerDivider}\n\n"Sic itur ad astra." - Virgilio, Eneide IX, 641\n`,
+);
 
 const imageUploadInput = document.getElementById("upload") as HTMLInputElement | null;
 const cameraVideoElement = document.getElementById("input_video") as HTMLVideoElement | null;

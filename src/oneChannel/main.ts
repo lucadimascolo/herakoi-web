@@ -1,7 +1,7 @@
 import "./style.css";
 
 import { Camera } from "@mediapipe/camera_utils";
-import type { Results } from "@mediapipe/hands";
+import type { NormalizedLandmarkList, Results } from "@mediapipe/hands";
 import { Sonifier, type ToneUpdate } from "#src/audio/sonification";
 import { drawFingerFocus, drawFrequencyLabel, drawHands } from "#src/canvas/overlay";
 import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
@@ -46,6 +46,7 @@ const minVolSlider = document.getElementById("min-vol") as HTMLInputElement | nu
 const maxVolSlider = document.getElementById("max-vol") as HTMLInputElement | null;
 const minVolValue = document.getElementById("min-vol-value");
 const maxVolValue = document.getElementById("max-vol-value");
+const mirrorToggle = document.getElementById("mirror-toggle") as HTMLInputElement | null;
 
 if (
   !minFreqSlider ||
@@ -55,7 +56,8 @@ if (
   !minVolSlider ||
   !maxVolSlider ||
   !minVolValue ||
-  !maxVolValue
+  !maxVolValue ||
+  !mirrorToggle
 ) {
   throw new Error("Expected frequency and volume controls to be present.");
 }
@@ -79,6 +81,7 @@ maxFreqSlider.addEventListener("input", (event) => {
 
 let minVol = Number(minVolSlider.value) || 0;
 let maxVol = Number(maxVolSlider.value) || 0.3;
+let isMirrored = mirrorToggle.checked;
 
 minVolSlider.addEventListener("input", (event) => {
   const value = Number((event.target as HTMLInputElement).value);
@@ -91,6 +94,17 @@ maxVolSlider.addEventListener("input", (event) => {
   maxVol = value;
   maxVolValue.textContent = value.toFixed(2);
 });
+
+const syncVideoMirror = () => {
+  cameraVideoElement.style.transform = isMirrored ? "scaleX(-1)" : "";
+};
+
+mirrorToggle.addEventListener("input", (event) => {
+  isMirrored = (event.target as HTMLInputElement).checked;
+  syncVideoMirror();
+});
+
+syncVideoMirror();
 
 /*
  * We reuse HandsDetector so our MediaPipe asset wiring stays centralized with src/vision/hands.ts.
@@ -134,13 +148,14 @@ hands.onResults((results: Results) => {
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
     for (const [handIndex, handLms] of results.multiHandLandmarks.entries()) {
+      const workingLandmarks = isMirrored ? mirrorLandmarks(handLms) : handLms;
       drawHands([
-        { ctx: videoHandsOverlayCtx, landmarks: handLms },
-        { ctx: imageOverlayCtx, landmarks: handLms },
+        { ctx: videoHandsOverlayCtx, landmarks: workingLandmarks },
+        { ctx: imageOverlayCtx, landmarks: workingLandmarks },
       ]);
 
       const fingerFocus = getFingerFocus(
-        handLms,
+        workingLandmarks,
         imageOverlayCanvas.width,
         imageOverlayCanvas.height,
       );
@@ -153,11 +168,9 @@ hands.onResults((results: Results) => {
       const pixelX = Math.floor(fingerFocus.x);
       const pixelY = Math.floor(fingerFocus.y);
 
-      const mirroredPixelX = Math.max(
-        0,
-        Math.min(imageOverlayCanvas.width - 1, imageOverlayCanvas.width - 1 - pixelX),
-      );
-      const pixelSample = imageSampler?.sampleAtPixel(mirroredPixelX, pixelY);
+      const boundedPixelX = Math.max(0, Math.min(imageOverlayCanvas.width - 1, pixelX));
+      const boundedPixelY = Math.max(0, Math.min(imageOverlayCanvas.height - 1, pixelY));
+      const pixelSample = imageSampler?.sampleAtPixel(boundedPixelX, boundedPixelY);
       if (!pixelSample) {
         continue;
       }
@@ -237,3 +250,10 @@ function setupCanvasSizes() {
 
 setupCanvasSizes();
 window.addEventListener("resize", setupCanvasSizes);
+
+function mirrorLandmarks(landmarks: NormalizedLandmarkList): NormalizedLandmarkList {
+  return landmarks.map((landmark) => ({
+    ...landmark,
+    x: 1 - landmark.x,
+  })) as NormalizedLandmarkList;
+}

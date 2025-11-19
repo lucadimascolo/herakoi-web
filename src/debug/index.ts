@@ -3,7 +3,25 @@ import { createDebugPanel, type DebugToneSample } from "./panel";
 
 export type { DebugToneSample } from "./panel";
 
-const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
+const isBuildTimeDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
+/*
+ * We let teammates flip on the debug HUD in production by tacking `?dev` onto the URL, which mirrors the
+ * local DEV flag without needing a bespoke build. If parsing fails we quietly fall back to the safer default.
+ */
+const queryParamEnablesDev = (() => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.has("dev");
+  } catch {
+    return false;
+  }
+})();
+
+const isDev = isBuildTimeDev || queryParamEnablesDev;
 
 export type DebugTools = {
   logToneSamples: (samples: DebugToneSample[]) => void;

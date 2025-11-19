@@ -267,6 +267,18 @@ const uploadBufferImage = new Image();
 uploadBufferImage.crossOrigin = "anonymous";
 let hasUploadedSourceImage = false;
 
+// Load default zodiac constellation image (for the MEME)
+uploadBufferImage.onload = () => {
+  hasUploadedSourceImage = true;
+  redrawSourceImage();
+};
+
+uploadBufferImage.onerror = (error) => {
+  console.error("Failed to load default zodiac constellation image", error);
+};
+
+uploadBufferImage.src = "/assets/zodiac-constellations.jpg";
+
 const redrawSourceImage = () => {
   if (!hasUploadedSourceImage) {
     return;

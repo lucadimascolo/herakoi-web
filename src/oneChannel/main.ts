@@ -58,8 +58,6 @@ if (
 }
 
 let imageSampler: ImageSampler | null = null;
-// The <img> element backs both the visible preview and the sampler's pixel source.
-// We draw directly from the element on load, so no extra state is needed.
 
 let minFreq = Number(minFreqSlider.value) || 200;
 let maxFreq = Number(maxFreqSlider.value) || 700;

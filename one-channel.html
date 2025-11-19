@@ -40,44 +40,24 @@
   </div>
 
   <div class="debug-ui">
-    <label class="debug-ui__upload">
-      <span class="debug-ui__label">Source Image File</span>
-      <input type="file" id="upload" accept="image/*" />
-    </label>
-    <div class="debug-ui__controls">
-      <p class="debug-ui__label">Frequency Range</p>
-      <div class="debug-ui__sliders">
-        <input type="range" id="min-freq" min="100" max="500" value="200"
-          step="10" />
-        <span id="min-freq-value">200</span> Hz
-        <input type="range" id="max-freq" min="500" max="2000" value="700"
-          step="10" />
-        <span id="max-freq-value">700</span> Hz
+    <section class="debug-ui__group debug-ui__group--upload">
+      <p class="debug-ui__label">Source Image</p>
+      <p class="debug-ui__subtext">Load a reference image so we can sample hues and brightness for the sonification.</p>
+      <label class="debug-ui__field" for="upload">
+        <span>Select file</span>
+        <input type="file" id="upload" accept="image/*" />
+      </label>
+    </section>
+    <section class="debug-ui__group">
+      <p class="debug-ui__label">Video & Tracking</p>
+      <p class="debug-ui__subtext">Mirror, pick a camera, and choose how many hands MediaPipe should track.</p>
+      <div class="debug-ui__section">
+        <button type="button" id="mirror-toggle" class="debug-ui__button">
+          Enable mirror mode
+        </button>
       </div>
-      <p class="debug-ui__label">Volume Range</p>
-      <div class="debug-ui__sliders">
-        <input type="range" id="min-vol" min="0.0" max="0.3" value="0.0"
-          step="0.01" />
-        <span id="min-vol-value">0.00</span>
-        <input type="range" id="max-vol" min="0.3" max="1.0" value="0.3"
-          step="0.01" />
-        <span id="max-vol-value">1.00</span>
-      </div>
-      <p class="debug-ui__label">Mirror Mode</p>
-      <button type="button" id="mirror-toggle" class="debug-ui__button">
-        Enable mirror mode
-      </button>
-      <p class="debug-ui__label">Hand Detection</p>
-      <div class="debug-ui__sliders">
-        <label for="max-hands" style="display: contents; align-items: center">
-          <span>Max Hands</span>
-          <input type="number" id="max-hands" min="1" max="8" value="4" step="1" />
-          <span id="max-hands-value">4</span>
-        </label>
-      </div>
-      <p class="debug-ui__label">Camera Facing</p>
-      <div class="debug-ui__sliders">
-        <label for="camera-facing" style="display: contents; align-items: center">
+      <div class="debug-ui__section">
+        <label class="debug-ui__field" for="camera-facing">
           <span>Camera</span>
           <select id="camera-facing">
             <option value="user" selected>Front (user)</option>
@@ -85,19 +65,51 @@
           </select>
         </label>
       </div>
-      <p class="debug-ui__label">Oscillator Type</p>
-      <div class="debug-ui__sliders">
-        <label for="oscillator-type" style="display: contents">
-          <span>Waveform</span>
-          <select id="oscillator-type">
-            <option value="sine" selected>Sine</option>
-            <option value="square">Square</option>
-            <option value="sawtooth">Sawtooth</option>
-            <option value="triangle">Triangle</option>
-          </select>
+      <div class="debug-ui__section">
+        <label class="debug-ui__field" for="max-hands">
+          <span>Max Hands</span>
+          <input type="number" id="max-hands" min="1" max="8" value="4" step="1" />
+          <span id="max-hands-value">4</span>
         </label>
       </div>
-    </div>
+    </section>
+    <section class="debug-ui__group">
+        <p class="debug-ui__label">Audio Settings</p>
+        <p class="debug-ui__subtext">Tune how we map pixels to tones before sending them to the sonifier.</p>
+        <div class="debug-ui__section">
+          <span class="debug-ui__field-label">Frequency Range</span>
+          <div class="debug-ui__sliders">
+            <input type="range" id="min-freq" min="100" max="500" value="200"
+              step="10" />
+            <span id="min-freq-value">200</span> Hz
+            <input type="range" id="max-freq" min="500" max="2000" value="700"
+              step="10" />
+            <span id="max-freq-value">700</span> Hz
+          </div>
+        </div>
+        <div class="debug-ui__section">
+          <span class="debug-ui__field-label">Volume Range</span>
+          <div class="debug-ui__sliders">
+            <input type="range" id="min-vol" min="0.0" max="0.3" value="0.0"
+              step="0.01" />
+            <span id="min-vol-value">0.00</span>
+            <input type="range" id="max-vol" min="0.3" max="1.0" value="0.3"
+              step="0.01" />
+            <span id="max-vol-value">1.00</span>
+          </div>
+        </div>
+        <div class="debug-ui__section">
+          <label class="debug-ui__field" for="oscillator-type">
+            <span>Waveform</span>
+            <select id="oscillator-type">
+              <option value="sine" selected>Sine</option>
+              <option value="square">Square</option>
+              <option value="sawtooth">Sawtooth</option>
+              <option value="triangle">Triangle</option>
+            </select>
+          </label>
+        </div>
+      </section>
   </div>
 
   <script type="module" src="/src/oneChannel/main.ts"></script>

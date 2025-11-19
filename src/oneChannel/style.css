@@ -22,7 +22,7 @@ body {
 
 .debug-ui {
   display: flex;
-  flex-direction: row;
+  flex-wrap: wrap;
   gap: 20px;
   width: 100%;
   max-width: 1320px;
@@ -32,19 +32,15 @@ body {
   font-size: 14px;
 }
 
-.debug-ui__upload,
-.debug-ui__controls {
+.debug-ui__group {
   background: rgba(20, 20, 20, 0.85);
   border: 1px solid rgba(125, 249, 255, 0.4);
   border-radius: 8px;
-  padding: 12px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.debug-ui__upload input {
-  margin-top: 4px;
+  gap: 12px;
+  flex: 1 1 280px;
 }
 
 .debug-ui__sliders {
@@ -52,6 +48,29 @@ body {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+.debug-ui__group--upload {
+  flex: 0 0 260px;
+}
+
+.debug-ui__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.debug-ui__field,
+.debug-ui__field-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.debug-ui__subtext {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(241, 241, 241, 0.7);
 }
 
 .debug-ui__sliders select,

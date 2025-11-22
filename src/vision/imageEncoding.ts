@@ -31,6 +31,7 @@ const encodeHueValue = (imageData: ImageData) => {
     }
 
     if (h < 0) h += 360;
+    if (h > 340) h = 340;
 
     const v = cmax;
     const hByte = Math.round((h / 360) * 255);
